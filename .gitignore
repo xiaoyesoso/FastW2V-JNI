@@ -1,0 +1,40 @@
+# Build artifacts
+build/
+bin/
+obj/
+*.so
+*.a
+*.o
+*.out
+deploy/
+w2v_final_deploy/
+*.tar.gz
+*.zip
+
+# Android / Gradle
+.gradle/
+ndk/
+local.properties
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aar
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Models (Large files should usually be ignored or handled via Git LFS)
+models/*.bin
+android_test/app/src/main/assets/*.bin
+
+# Temporary files
+*.log
+temp/
+tmp/
