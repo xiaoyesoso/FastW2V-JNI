@@ -345,6 +345,21 @@ public:
         return embedding_dim_;
     }
     
+    size_t get_memory_usage() const {
+        size_t total = 0;
+        // 词向量 map 的内存
+        for (const auto& pair : word_vectors_) {
+            total += pair.first.capacity();
+            total += pair.second.capacity() * sizeof(float);
+        }
+        // map 自身的开销 (估算)
+        total += word_vectors_.size() * (sizeof(std::string) + sizeof(std::vector<float>) + 32); 
+        total += zero_vector_.capacity() * sizeof(float);
+        total += unknown_vector_.capacity() * sizeof(float);
+        total += sizeof(*this);
+        return total;
+    }
+    
     bool is_initialized() const {
         return initialized_;
     }
@@ -378,6 +393,10 @@ std::vector<std::vector<float> > TextEmbedder::embed_batch(const std::vector<std
 
 int TextEmbedder::get_embedding_dim() const {
     return impl_->get_embedding_dim();
+}
+
+size_t TextEmbedder::get_memory_usage() const {
+    return impl_->get_memory_usage();
 }
 
 bool TextEmbedder::is_initialized() const {

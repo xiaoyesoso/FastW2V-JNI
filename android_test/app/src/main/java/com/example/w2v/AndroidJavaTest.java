@@ -58,7 +58,16 @@ public class AndroidJavaTest {
             // 4. 测试引擎元数据获取
             Log.i(TAG, "\n引擎元数据:");
             Log.i(TAG, "- 向量维度: " + W2VNative.getEmbeddingDim(enginePtr));
-            Log.i(TAG, "- 内存占用: " + W2VNative.getMemoryUsage(enginePtr) + " MB");
+            long bytes = W2VNative.getMemoryUsage(enginePtr);
+            String memoryStr;
+            if (bytes < 1024) {
+                memoryStr = bytes + " B";
+            } else if (bytes < 1024 * 1024) {
+                memoryStr = String.format("%.2f KB", bytes / 1024.0);
+            } else {
+                memoryStr = String.format("%.2f MB", bytes / (1024.0 * 1024.0));
+            }
+            Log.i(TAG, "- 内存占用: " + memoryStr);
             
         } catch (Exception e) {
             Log.e(TAG, "测试过程中发生异常", e);

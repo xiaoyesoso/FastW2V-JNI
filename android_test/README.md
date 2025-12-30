@@ -8,18 +8,28 @@
 
 | 文件类型 | 文件路径 (Android Project) | 说明 |
 | :--- | :--- | :--- |
-| **JNI 库** | `app/src/main/jniLibs/arm64-v8a/libw2v_jni.so` | 核心计算引擎 (ARM64) |
+| **JNI 库 (64位)** | `app/src/main/jniLibs/arm64-v8a/libw2v_jni.so` | 核心计算引擎 (ARM64) |
+| **JNI 库 (32位)** | `app/src/main/jniLibs/armeabi-v7a/libw2v_jni.so` | 兼容旧型设备 (ARMv7) |
 | **Java 接口** | `app/src/main/java/com/example/w2v/W2VNative.java` | JNI 方法定义与核心 API |
 | **模型文件** | `app/src/main/assets/light_Tencent_AILab_ChineseEmbedding.bin` | 预训练词向量模型 |
 | **QA 数据** | `app/src/main/assets/qa_list.csv` | 问答知识库 (CSV 格式) |
 
+> **注意：** 本库已采用 **静态链接 C++ 标准库** (`libc++_static`)，集成时**不需要**额外提供 `libc++_shared.so`。
+
 ## 2. 快速集成步骤
 
 ### 第一步：配置 NDK 库加载
-在 `app/build.gradle` 中确保配置了 `jniLibs` 路径（通常默认已包含）：
+在 `app/build.gradle` 中确保配置了 `jniLibs` 路径，并建议指定 ABI 过滤：
 ```gradle
 android {
     ...
+    defaultConfig {
+        ...
+        ndk {
+            // 根据需要选择支持的架构
+            abiFilters 'arm64-v8a', 'armeabi-v7a'
+        }
+    }
     sourceSets {
         main {
             jniLibs.srcDirs = ['src/main/jniLibs']
@@ -28,7 +38,18 @@ android {
 }
 ```
 
-### 第二步：使用 W2VNative 进行搜索
+### 第二步：自定义包名（可选）
+如果你的项目包名不是 `com.example.w2v`，你需要重新构建 JNI 库以匹配你的 Java 类路径：
+
+1. 修改 `W2VNative.java` 的 `package` 声明为你项目的实际包名。
+2. 在 `android_test` 目录下运行构建脚本，并传入你的完整类名路径：
+   ```bash
+   # 格式：./build_android.sh "包名/类名"
+   ./build_android.sh "com/binx/w2vexample/W2VNative"
+   ```
+3. 脚本会自动重新编译 `arm64-v8a` 和 `armeabi-v7a` 的 `.so` 文件并输出到 `app/src/main/jniLibs`。
+
+### 第三步：使用 W2VNative 进行搜索
 直接使用 `W2VNative` 提供的静态方法。由于 Android 无法直接访问 Assets 路径，需要先将资源复制到应用的私有存储目录。
 
 **重要建议：** 为了实现毫秒级搜索响应，请务必在应用启动或进入相关模块时**预先初始化**。初始化会将模型和所有问题的向量（Embedding）一次性加载并常驻内存，避免在每次搜索时产生重复加载的开销。
@@ -75,12 +96,13 @@ new Thread(() -> {
 - `searchBatch(enginePtr, queries)`: 批量搜索，返回 `SearchResult[]`。
 - `getQACount(enginePtr)`: 获取已加载的 QA 总数。
 - `getEmbeddingDim(enginePtr)`: 获取向量维度。
-- `getMemoryUsage(enginePtr)`: 获取当前引擎占用的内存 (单位: MB)。
+- `getMemoryUsage(enginePtr)`: 获取当前引擎占用的内存 (单位: Bytes)。
 - `releaseEngine(enginePtr)`: 销毁引擎，释放原生内存。**不再使用时务必调用**。
 
 ## 4. 技术规范与注意事项
 
-- **架构支持**: 目前仅提供 `arm64-v8a` 架构的 `.so` 库。
+- **架构支持**: 同时提供 `arm64-v8a` (64位) 和 `armeabi-v7a` (32位) 架构支持，覆盖 99% 以上的 Android 设备。
+- **静态链接**: 已集成 `libc++_static`，彻底解决 `libc++_shared.so not found` 报错问题。
 - **匹配逻辑**: 仅对 `query` 和 `question` 进行向量化匹配，`answer` 仅作为结果返回，不参与向量计算。
 - **线程安全**: 底层引擎支持并发搜索，建议全局持有一个 `enginePtr`。
 - **内存消耗与性能**: 

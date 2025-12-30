@@ -18,6 +18,8 @@ public:
     
     int get_embedding_dim() const;
     
+    size_t get_memory_usage() const;
+    
     bool is_initialized() const;
     
     void release();

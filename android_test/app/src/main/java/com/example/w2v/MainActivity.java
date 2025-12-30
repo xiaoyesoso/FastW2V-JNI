@@ -90,6 +90,9 @@ public class MainActivity extends Activity {
                         int qaCount = W2VNative.getQACount(enginePtr);
                         updateStatusOnMainThread("引擎初始化成功\n加载了 " + qaCount + " 个QA对");
                         enableButtonOnMainThread(searchButton, true);
+                        
+                        // 调用测试代码
+                        AndroidJavaTest.runTest(enginePtr);
                     } else {
                         updateStatusOnMainThread("QA 加载失败");
                         W2VNative.releaseEngine(enginePtr);

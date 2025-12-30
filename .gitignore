@@ -38,3 +38,4 @@ android_test/app/src/main/assets/*.bin
 *.log
 temp/
 tmp/
+ndk/

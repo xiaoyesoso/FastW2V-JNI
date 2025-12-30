@@ -26,6 +26,7 @@ private:
         
         // 估算向量化器的内存使用
         if (embedder_ && embedder_->is_initialized()) {
+            memory_usage_ += embedder_->get_memory_usage();
             memory_usage_ += embedder_->get_embedding_dim() * sizeof(float) * qa_pairs_.size();
         }
         
