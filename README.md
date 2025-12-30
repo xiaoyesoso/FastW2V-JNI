@@ -13,28 +13,23 @@
 ## 📂 项目结构
 
 ```text
-w2v/
+.
 ├── src/                    # 核心 C++ 源代码
-│   ├── TextEmbedder.cpp    # 文本向量化
-│   ├── SimilaritySearch.cpp # 向量相似度搜索
-│   └── main.cpp            # 引擎主逻辑
-├── include/                # 头文件
-│   ├── TextEmbedder.h
-│   ├── SimilaritySearch.h
-│   └── com_example_w2v_W2VNative.h # JNI 生成头文件
+│   ├── TextEmbedder.cpp    # 文本向量化实现
+│   ├── SimilaritySearch.cpp # 向量相似度搜索实现
+│   └── main.cpp            # 命令行测试程序
+├── include/                # C++ 头文件目录
 ├── jni/                    # JNI 接口层
-│   ├── W2VNative.java      # Java 接口类
-│   └── com_example_w2v_W2VNative.cpp # JNI 实现 (C++)
-├── models/                 # 模型存放目录
-│   └── light_Tencent_AILab_ChineseEmbedding.bin (需下载)
-├── data/                   # 数据文件
-│   ├── qa_list.csv         # 推荐 QA 格式 (CSV)
-│   └── qa_list.txt         # 旧版 QA 格式 (Pipe 分隔)
-├── scripts/                # 自动化脚本
-│   ├── build_linux.sh      # Linux 构建脚本
-│   └── build_android.sh    # Android 编译脚本
-├── tests/                  # 测试用例
-└── CMakeLists.txt          # 项目构建配置
+│   ├── W2VNative.java      # Java 层接口定义
+│   └── com_example_w2v_W2VNative.cpp # JNI 原生实现
+├── android_test/           # Android 平台示例与测试工程
+├── linux_java_test/        # Linux 平台 Java 集成测试工程
+├── data/                   # 示例问答数据 (CSV格式)
+├── models/                 # 模型存放目录 (需手动下载模型放入)
+├── build_android.sh        # Android NDK 交叉编译脚本
+├── build_local_jni.sh      # 本地 (Linux/macOS) JNI 库编译脚本
+├── CMakeLists.txt          # CMake 构建配置文件
+└── README.md               # 项目主文档
 ```
 
 ## 📥 模型下载
