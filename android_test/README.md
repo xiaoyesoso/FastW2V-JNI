@@ -117,9 +117,30 @@ new Thread(() -> {
   }
   ```
 
-## 5. 本地仿真测试 (macOS)
-在交给 Android 同事之前，你可以运行以下脚本在本地模拟 Android 环境测试逻辑：
+## 5. Android 仿真测试 (模拟器/真机)
+
+为了验证 `libw2v_jni.so` 在真实 Android 环境下的表现，你可以按照以下步骤进行仿真测试：
+
+### 5.1 自动化仿真流程
+我们提供了一个演示 App (位于 `android_test` 目录)，它模拟了真实的业务调用流程：
+1. **安装并启动**: 在 Android Studio 中运行项目，或使用 `adb install` 安装生成的 APK。
+2. **加载模型**: 点击界面上的 **"LOAD QA FROM ASSETS"** 按钮。这会触发底层引擎初始化及 1500+ 条 QA 数据的 Embedding 计算。
+3. **执行搜索**: 点击 **"TEST BATCH SEARCH"** 按钮。这会模拟批量搜索请求，并输出性能及内存占用日志。
+
+### 5.2 验证结果 (Logcat)
+在测试过程中，可以通过 Android Logcat 查看详细的运行日志。建议使用以下过滤命令：
 ```bash
-./run_local_test.sh
+adb logcat -s AndroidJavaTest
 ```
-该脚本会自动连接 `linux_java_test` 中的真实引擎进行准确度验证。
+
+**预期输出示例**:
+```text
+I/AndroidJavaTest: --- W2V 性能与内存测试开始 ---
+I/AndroidJavaTest: [1/3] 加载状态: 成功, QA总数: 1534
+I/AndroidJavaTest: [2/3] 内存占用: 28.47 MB
+I/AndroidJavaTest: [3/3] 批量搜索完成 (10条查询)
+I/AndroidJavaTest:     - 查询: '你好', 结果: '你好！', 耗时: 1.2ms
+I/AndroidJavaTest:     - 查询: '怎么重置密码', 结果: '点击设置-安全-重置密码', 耗时: 0.8ms
+...
+I/AndroidJavaTest: --- 测试全部通过 ---
+```

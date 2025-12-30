@@ -4,11 +4,17 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
-#include <android/log.h>
 
+#ifdef ANDROID
+#include <android/log.h>
 #define TAG "W2VNative_JNI"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
+#else
+#include <iostream>
+#define LOGI(...) printf(__VA_ARGS__); printf("\n")
+#define LOGE(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")
+#endif
 
 // 全局引擎映射
 std::unordered_map<jlong, std::shared_ptr<W2VEngine> > engine_map;
