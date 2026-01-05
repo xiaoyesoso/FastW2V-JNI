@@ -1204,13 +1204,13 @@ std::vector<SearchResult> search_batch(const std::vector<std::vector<float> >& q
 
 ```mermaid
 flowchart TD
-    A[输入 Query 文本] --> B[TextEmbedder.embed<br/>(Word2Vec 或 BERT)]
-    B --> C[得到 Query 向量 e(Q)]
-    C --> D[SimilaritySearch.search(e(Q))]
-    D --> E[线性遍历所有 QA 向量]
-    E --> F[计算余弦相似度 Cos(e(Q), e(Qi))]
-    F --> G[选出最大相似度的 Qi]
-    G --> H[返回 {问题 Qi, 答案 Ai, 相似度}]
+    A["输入 Query 文本"] --> B["TextEmbedder.embed<br/>(Word2Vec 或 BERT)"]
+    B --> C["得到 Query 向量 e(Q)"]
+    C --> D["SimilaritySearch.search(e(Q))"]
+    D --> E["线性遍历所有 QA 向量"]
+    E --> F["计算余弦相似度 Cos(e(Q), e(Qi))"]
+    F --> G["选出最大相似度的 Qi"]
+    G --> H["返回 {问题 Qi, 答案 Ai, 相似度}"]
 ```
 
 ---
@@ -1616,9 +1616,9 @@ sequenceDiagram
     participant Java as Java: W2VNative
     participant JNI as JNI: com_example_w2v_W2VNative.cpp
     participant Engine as C++: W2VEngine
-    participant Embed as C++: TextEmbedder<br/>(Word2Vec/BERT)
+    participant Embed as C++: "TextEmbedder<br/>(Word2Vec/BERT)"
     participant Search as C++: SimilaritySearch
-    participant ORT as C++: ONNX Runtime<br/>(BERT 模式)
+    participant ORT as C++: "ONNX Runtime<br/>(BERT 模式)"
 
     User->>Activity: 在输入框中输入问题 Q
     Activity->>Java: W2VNative.search(enginePtr, Q)
