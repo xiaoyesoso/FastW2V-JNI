@@ -1,11 +1,13 @@
 # W2V Android Semantic Search SDK Integration Guide (Word2Vec Version)
 
+[中文版本 (Chinese Version)](README_CN.md)
+
 This SDK provides Word2Vec-based semantic search functionality, supporting local offline operation. It is primarily used for question-and-answer matching (QA Matching) and text similarity calculation on Android.
 
 ## 🚀 Key Features
 
 - **Extreme Speed**: Pure C++ implementation, with search times < 0.2ms.
-- **Raw Similarity Score**: Returns raw cosine similarity (-1.0 to 1.0), accurately reflecting the match degree.
+- **Cosine Similarity Score**: Returns standard cosine similarity (-1.0 to 1.0), accurately reflecting the match degree.
 - **Zero External Dependencies**: The JNI library runs independently without requiring additional runtimes.
 
 ## 1. Project Structure & Core Files
@@ -42,7 +44,7 @@ if (enginePtr != 0) {
     
     // 3. Execute search
     W2VNative.SearchResult result = W2VNative.search(enginePtr, "Hello");
-    System.out.println("Similarity: " + result.score); // Range: -1.0 ~ 1.0
+    Log.d("W2V", "Similarity: " + result.score); // Range: -1.0 ~ 1.0
 }
 ```
 

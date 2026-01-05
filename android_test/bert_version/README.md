@@ -1,12 +1,14 @@
 # W2V Android Semantic Search SDK Integration Guide (BERT Version)
 
+[中文版本 (Chinese Version)](README_CN.md)
+
 This SDK provides deep learning-based semantic search functionality powered by **Chinese BERT (CoROM-Tiny)**. Compared to traditional Word2Vec, BERT offers better contextual understanding and higher-quality text matching results.
 
 ## 🚀 Key Features
 
 - **Deep Semantic Understanding**: Based on the Transformer architecture, supporting complex contextual matching.
-- **Industry-grade Alignment**: Uses the CLS Pooling strategy, perfectly aligned with ModelScope pre-trained models.
-- **Raw Similarity Score**: Returns raw cosine similarity (-1.0 to 1.0), accurately reflecting the match degree.
+- **Industry-grade Alignment**: Uses the `[CLS]` token strategy, perfectly aligned with ModelScope pre-trained models.
+- **Cosine Similarity Score**: Returns standard cosine similarity (-1.0 to 1.0), accurately reflecting the match degree.
 
 ## 1. Project Structure & Core Files
 
@@ -49,7 +51,7 @@ if (enginePtr != 0) {
     
     // 3. Execute search
     W2VNative.SearchResult result = W2VNative.search(enginePtr, "How to restart the system");
-    System.out.println("Similarity: " + result.score); // Range: -1.0 ~ 1.0
+    Log.d("W2V", "Similarity: " + result.score); // Range: -1.0 ~ 1.0
 }
 ```
 

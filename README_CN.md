@@ -1,5 +1,7 @@
 # FastW2V-JNI
 
+[English Version](README.md)
+
 高性能 C++ 语义搜索与问答引擎，支持 **Word2Vec** 和 **BERT (ONNX)** 双引擎切换。专为移动端 (Android) 和嵌入式设备设计，实现毫秒级的语义匹配。
 
 ## 🚀 项目特点
@@ -8,24 +10,39 @@
 - ✅ **极致性能**：采用原生 C++17 实现，Word2Vec 搜索耗时 <1ms，BERT 推理耗时低。
 - ✅ **跨平台 JNI**：提供完善的 Java Native Interface，轻松集成至 Android 或 Java 项目。
 - ✅ **完全离线**：支持端侧部署，无需联网，内存占用可控。
-- ✅ **工业级对齐**：BERT 引擎完美对齐 ModelScope CoROM 池化策略（CLS Pooling）。
-- ✅ **原始相似度**：返回原始余弦相似度（-1 到 1），真实反映模型置信度。
+- ✅ **工业级对齐**：BERT 引擎使用 `[CLS]` 向量作为句子表示，完美对齐 ModelScope CoROM 池化策略。
+- ✅ **标准相似度**：采用标准余弦相似度计算匹配得分（-1 到 1），结果分布可预测。
 
 ## 📂 项目结构
 
 ```text
 .
-├── src/                # 核心 C++ 源代码 (W2V, BERT, Tokenizer, Search)
+├── src/                # 核心 C++ 源代码
+│   ├── BertEmbedder.cpp    # BERT ONNX 推理实现
+│   ├── BertTokenizer.cpp   # BERT WordPiece 分词器
+│   ├── SimilaritySearch.cpp # 向量搜索与余弦相似度计算
+│   ├── TextEmbedder.cpp    # 嵌入器基类
+│   └── W2VEmbedder.cpp     # Word2Vec 词嵌入实现
 ├── include/            # C++ 头文件
-├── jni/                # JNI 接口层 (Java 定义与 C++ 实现)
+│   ├── BertEmbedder.h      # BERT 引擎头文件
+│   ├── BertTokenizer.h     # 分词器头文件
+│   ├── SimilaritySearch.h  # 搜索引擎头文件
+│   ├── TextEmbedder.h      # 嵌入器基类接口
+│   ├── W2VEmbedder.h       # Word2Vec 引擎头文件
+│   ├── W2VEngine.h         # 复合引擎 (JNI 包装类)
+│   └── com_example_w2v_W2VNative.h # JNI 生成的头文件
+├── jni/                # JNI 接口层
+│   ├── CMakeLists.txt      # NDK 编译配置
+│   ├── W2VNative.java      # Java 原生方法定义 (参考)
+│   └── com_example_w2v_W2VNative.cpp # C++ JNI 实现
 ├── android_test/       # Android 平台示例
-│   ├── w2v_version/    # Word2Vec 集成示例
-│   └── bert_version/   # BERT (ONNX Runtime) 集成示例
-├── linux_java_test/    # Linux/Desktop Java 测试工程
-├── models/             # 模型存放目录
-├── data/               # 示例 QA 数据 (CSV 格式)
-├── build_android.sh    # 全局 Android NDK 编译脚本
-└── CMakeLists.txt      # CMake 构建配置
+│   ├── w2v_version/    # Word2Vec 集成示例 (完整 App)
+│   └── bert_version/   # BERT (ONNX Runtime) 集成示例 (完整 App)
+├── scripts/            # Python 工具脚本
+│   └── convert_model.py    # 模型转换与导出脚本
+├── data/               # 示例问答数据
+│   └── qa_list.csv         # 默认问答知识库
+└── CMakeLists.txt      # 根目录 CMake 编译配置
 ```
 
 ## 🛠️ 快速开始
@@ -95,20 +112,6 @@ if (result != null) {
     System.out.println("置信度 (Cos): " + result.score);
 }
 ```
-
-## 🐧 Linux / RK3588 部署
-
-### 1. 编译 Linux 版本
-```bash
-# 使用 build.sh 脚本进行本地编译
-chmod +x build.sh
-./build.sh linux
-```
-
-### 2. 部署步骤
-1. 将编译生成的 `libw2v_jni.so`、模型文件及 `qa_list.csv` 拷贝至目标设备。
-2. 确保 Java 运行时能够加载到该 `.so` 库（设置 `java.library.path`）。
-3. 验证库文件：`file libw2v_jni.so` 应显示 `ELF 64-bit LSB shared object, ARM aarch64`。
 
 ## 📱 Android 集成指南
 

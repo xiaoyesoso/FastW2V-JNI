@@ -30,17 +30,11 @@ captures/
 *.swo
 .DS_Store
 
-# Models (Large files should usually be ignored or handled via Git LFS)
-models/
-export/
-*.bin
+# Models
 *.onnx
-**/assets/*.bin
-**/assets/*.onnx
-**/assets/vocab.txt
+*.bin
+*.txt
 
-# Temporary files
-*.log
-temp/
-tmp/
-ndk/
+# Temporary/Debug files
+view.xml
+.DS_Store

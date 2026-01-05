@@ -73,7 +73,6 @@ build_for_abi() {
     $CXX_COMPILER $CXXFLAGS -c $PROJECT_ROOT/src/BertEmbedder.cpp -o $BUILD_DIR/BertEmbedder.o
     $CXX_COMPILER $CXXFLAGS -c $PROJECT_ROOT/src/TextEmbedder.cpp -o $BUILD_DIR/TextEmbedder.o
     $CXX_COMPILER $CXXFLAGS -c $PROJECT_ROOT/src/SimilaritySearch.cpp -o $BUILD_DIR/SimilaritySearch.o
-    $CXX_COMPILER $CXXFLAGS -c $PROJECT_ROOT/src/main.cpp -o $BUILD_DIR/main.o
     $CXX_COMPILER $CXXFLAGS -c $PROJECT_ROOT/jni/com_example_w2v_W2VNative.cpp -o $BUILD_DIR/W2VNative.o
     
     # 链接生成 .so 文件
@@ -83,7 +82,6 @@ build_for_abi() {
         $BUILD_DIR/BertEmbedder.o \
         $BUILD_DIR/TextEmbedder.o \
         $BUILD_DIR/SimilaritySearch.o \
-        $BUILD_DIR/main.o \
         $BUILD_DIR/W2VNative.o \
         -o $OUTPUT_DIR/libw2v_jni.so
         

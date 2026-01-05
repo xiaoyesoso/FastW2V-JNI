@@ -144,8 +144,8 @@ std::vector<float> BertEmbedder::embed(const std::string& text) {
 
         // 5. 处理输出
         float* output_data = output_tensors[0].GetTensorMutableData<float>();
-        auto output_shape = output_tensors[0].GetTensorTypeAndShapeInfo().GetShape();
-        
+        auto output_shape = output_tensors.front().GetTensorTypeAndShapeInfo().GetShape();
+
         std::vector<float> res;
         if (output_shape.size() == 3) {
             // [1, seq_len, dim]
@@ -154,7 +154,6 @@ std::vector<float> BertEmbedder::embed(const std::string& text) {
             res.resize(dim, 0.0f);
             
             // 对于 CoROM 等句子嵌入模型，通常采用 [CLS] 位置的向量 (即 index 0)
-            // 这是 ModelScope 文档中明确指定的方案
             LOGI("使用 CLS Pooling (Index 0)");
             for (int j = 0; j < dim; ++j) {
                 res[j] = output_data[j];

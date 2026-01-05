@@ -21,7 +21,6 @@ set(CORE_SOURCES
     src/BertTokenizer.cpp
     src/BertEmbedder.cpp
     src/SimilaritySearch.cpp
-    src/main.cpp
 )
 
 # JNI源码
@@ -57,7 +56,7 @@ elseif(EXISTS "${ONNXRUNTIME_DIR}/include")
     include_directories(${ONNXRUNTIME_DIR}/include)
 endif()
 
-# 根据平台设置库文件名称
+# 根据 Android 平台设置库文件名称
 if(ANDROID)
     # Android 平台通常在 jni/<abi>/ 目录下
     set(ORT_LIB_PATH "${ONNXRUNTIME_DIR}/jni/${ANDROID_ABI}/libonnxruntime.so")
@@ -65,10 +64,8 @@ if(ANDROID)
         # 尝试备选路径
         set(ORT_LIB_PATH "${ONNXRUNTIME_DIR}/lib/libonnxruntime.so")
     endif()
-elseif(APPLE)
-    set(ORT_LIB_PATH "${ONNXRUNTIME_DIR}/lib/libonnxruntime.dylib")
 else()
-    set(ORT_LIB_PATH "${ONNXRUNTIME_DIR}/lib/libonnxruntime.so")
+    message(FATAL_ERROR "This project is now configured for Android only. Please use an Android toolchain.")
 endif()
 
 if(EXISTS "${ORT_LIB_PATH}")

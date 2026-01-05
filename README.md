@@ -1,5 +1,7 @@
 # FastW2V-JNI
 
+[中文版本 (Chinese Version)](README_CN.md)
+
 High-performance C++ semantic search and Q&A engine, supporting dual engines: **Word2Vec** and **BERT (ONNX)**. Specifically designed for mobile (Android) and embedded devices, achieving millisecond-level semantic matching.
 
 ## 🚀 Features
@@ -8,24 +10,39 @@ High-performance C++ semantic search and Q&A engine, supporting dual engines: **
 - ✅ **Extreme Performance**: Implemented in native C++17, Word2Vec search takes <1ms, BERT inference is highly efficient.
 - ✅ **Cross-platform JNI**: Provides a comprehensive Java Native Interface for easy integration into Android or Java projects.
 - ✅ **Fully Offline**: Supports on-device deployment without internet access, with controllable memory usage.
-- ✅ **Industry-grade Alignment**: BERT engine perfectly aligns with ModelScope CoROM pooling strategy (CLS Pooling).
-- ✅ **Raw Similarity**: Returns raw cosine similarity (-1 to 1), accurately reflecting model confidence.
+- ✅ **Industry-grade Alignment**: BERT engine uses the `[CLS]` token as the sentence representation, perfectly aligning with ModelScope's CoROM strategy.
+- ✅ **Standard Similarity**: Uses standard Cosine Similarity to calculate the match score (-1 to 1), providing predictable results.
 
 ## 📂 Project Structure
 
 ```text
 .
-├── src/                # Core C++ source code (W2V, BERT, Tokenizer, Search)
+├── src/                # Core C++ source code
+│   ├── BertEmbedder.cpp    # BERT ONNX inference implementation
+│   ├── BertTokenizer.cpp   # BERT WordPiece tokenizer
+│   ├── SimilaritySearch.cpp # Vector search & Cosine similarity
+│   ├── TextEmbedder.cpp    # Base class for embedders
+│   └── W2VEmbedder.cpp     # Word2Vec word embedding implementation
 ├── include/            # C++ header files
-├── jni/                # JNI interface layer (Java definition & C++ implementation)
+│   ├── BertEmbedder.h      # BERT engine headers
+│   ├── BertTokenizer.h     # Tokenizer headers
+│   ├── SimilaritySearch.h  # Search engine headers
+│   ├── TextEmbedder.h      # Base embedder interface
+│   ├── W2VEmbedder.h       # Word2Vec engine headers
+│   ├── W2VEngine.h         # Composite engine (JNI wrapper)
+│   └── com_example_w2v_W2VNative.h # JNI generated headers
+├── jni/                # JNI interface layer
+│   ├── CMakeLists.txt      # NDK build configuration
+│   ├── W2VNative.java      # Java native method definitions (Reference)
+│   └── com_example_w2v_W2VNative.cpp # C++ JNI implementation
 ├── android_test/       # Android platform examples
-│   ├── w2v_version/    # Word2Vec integration example
-│   └── bert_version/   # BERT (ONNX Runtime) integration example
-├── linux_java_test/    # Linux/Desktop Java test project
-├── models/             # Model storage directory
-├── data/               # Sample QA data (CSV format)
-├── build_android.sh    # Global Android NDK build script
-└── CMakeLists.txt      # CMake build configuration
+│   ├── w2v_version/    # Word2Vec integration example (Complete App)
+│   └── bert_version/   # BERT (ONNX Runtime) integration example (Complete App)
+├── scripts/            # Python utility scripts
+│   └── convert_model.py    # Model conversion and export script
+├── data/               # Sample QA data
+│   └── qa_list.csv         # Default QA knowledge base
+└── CMakeLists.txt      # Root CMake build configuration
 ```
 
 ## 🛠️ Quick Start
@@ -95,20 +112,6 @@ if (result != null) {
     System.out.println("Confidence (Cos): " + result.score);
 }
 ```
-
-## 🐧 Linux / RK3588 Deployment
-
-### 1. Build Linux Version
-```bash
-# Use build.sh script for local compilation
-chmod +x build.sh
-./build.sh linux
-```
-
-### 2. Deployment Steps
-1. Copy the generated `libw2v_jni.so`, model files, and `qa_list.csv` to the target device.
-2. Ensure the Java runtime can load the `.so` library (set `java.library.path`).
-3. Verify the library: `file libw2v_jni.so` should show `ELF 64-bit LSB shared object, ARM aarch64`.
 
 ## 📱 Android Integration Guide
 

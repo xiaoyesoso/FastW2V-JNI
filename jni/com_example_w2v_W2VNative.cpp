@@ -1,5 +1,5 @@
-#include "../include/main.h"
 #include <jni.h>
+#include "../include/W2VEngine.h"
 #include <string>
 #include <vector>
 #include <memory>

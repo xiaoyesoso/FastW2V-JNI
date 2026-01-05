@@ -37,7 +37,7 @@ private:
             norm2 += vec2[i] * vec2[i];
         }
         
-        if (norm1 == 0.0f || norm2 == 0.0f) {
+        if (norm1 < 1e-9f || norm2 < 1e-9f) {
             return 0.0f;
         }
         

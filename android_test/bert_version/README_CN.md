@@ -1,12 +1,14 @@
 # W2V Android 语义搜索 SDK 集成文档 (BERT 版)
 
+[English Version](README.md)
+
 本 SDK 提供基于 **Chinese BERT (CoROM-Tiny)** 的深度学习语义搜索功能。相比传统的 Word2Vec，BERT 能更好地理解上下文语义，提供更高质量的文本匹配结果。
 
 ## 🚀 核心特性
 
 - **深度语义理解**：基于 transformer 架构，支持复杂的上下文匹配。
-- **工业级对齐**：采用 CLS Pooling 策略，完美对齐 ModelScope 预训练模型。
-- **原始得分**：返回原始余弦相似度（-1.0 到 1.0），真实反映匹配度。
+- **工业级对齐**：采用 `[CLS]` 向量策略，完美对齐 ModelScope 预训练模型。
+- **余弦相似度得分**：返回标准余弦相似度（-1.0 到 1.0），真实反映匹配度。
 
 ## 1. 项目结构与核心文件
 
@@ -49,7 +51,7 @@ if (enginePtr != 0) {
     
     // 3. 执行搜索
     W2VNative.SearchResult result = W2VNative.search(enginePtr, "系统如何重启");
-    System.out.println("相似度: " + result.score); // 范围: -1.0 ~ 1.0
+    Log.d("W2V", "相似度: " + result.score); // 范围: -1.0 ~ 1.0
 }
 ```
 
