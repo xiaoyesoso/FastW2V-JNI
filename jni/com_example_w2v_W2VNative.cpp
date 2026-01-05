@@ -58,6 +58,18 @@ jlong native_initEngine(JNIEnv *env, jclass clazz, jstring modelPath) {
     return engine_id;
 }
 
+jlong native_initBertEngine(JNIEnv *env, jclass clazz, jstring modelPath, jstring vocabPath) {
+    std::string model_path = jstring_to_string(env, modelPath);
+    std::string vocab_path = jstring_to_string(env, vocabPath);
+    std::shared_ptr<W2VEngine> engine = std::make_shared<W2VEngine>();
+    if (!engine->initialize_bert(model_path, vocab_path)) {
+        return 0;
+    }
+    jlong engine_id = next_engine_id++;
+    engine_map[engine_id] = engine;
+    return engine_id;
+}
+
 jboolean native_loadQAFromFile(JNIEnv *env, jclass clazz, jlong enginePtr, jstring filePath) {
     auto it = engine_map.find(enginePtr);
     if (it == engine_map.end()) return JNI_FALSE;
@@ -70,9 +82,7 @@ jboolean native_loadQAFromMemory(JNIEnv *env, jclass clazz, jlong enginePtr, job
     std::vector<std::string> q_vec = jobjectarray_to_stringvector(env, questions);
     std::vector<std::string> a_vec = jobjectarray_to_stringvector(env, answers);
     if (q_vec.size() != a_vec.size()) return JNI_FALSE;
-    std::vector<std::pair<std::string, std::string> > qa_pairs;
-    for (size_t i = 0; i < q_vec.size(); i++) qa_pairs.emplace_back(q_vec[i], a_vec[i]);
-    return it->second->load_qa_from_memory(qa_pairs) ? JNI_TRUE : JNI_FALSE;
+    return it->second->load_qa_from_memory(q_vec, a_vec) ? JNI_TRUE : JNI_FALSE;
 }
 
 // 缓存 SearchResult 类信息
@@ -143,6 +153,7 @@ void native_releaseEngine(JNIEnv *env, jclass clazz, jlong enginePtr) {
 // 动态注册方法表
 static JNINativeMethod gMethods[] = {
     {"initEngine", "(Ljava/lang/String;)J", (void*)native_initEngine},
+    {"initBertEngine", "(Ljava/lang/String;Ljava/lang/String;)J", (void*)native_initBertEngine},
     {"loadQAFromFile", "(JLjava/lang/String;)Z", (void*)native_loadQAFromFile},
     {"loadQAFromMemory", "(J[Ljava/lang/String;[Ljava/lang/String;)Z", (void*)native_loadQAFromMemory},
     {"search", nullptr, (void*)native_search},
@@ -181,8 +192,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
     // 动态构建签名以支持自定义包名
     gSearchSig = "(JLjava/lang/String;)L" + std::string(className) + "$SearchResult;";
     gSearchBatchSig = "(J[Ljava/lang/String;)[L" + std::string(className) + "$SearchResult;";
-    gMethods[3].signature = (char*)gSearchSig.c_str();
-    gMethods[4].signature = (char*)gSearchBatchSig.c_str();
+    gMethods[4].signature = (char*)gSearchSig.c_str();
+    gMethods[5].signature = (char*)gSearchBatchSig.c_str();
 
     // 缓存内部类 SearchResult 信息
     std::string resultClassName = std::string(className) + "$SearchResult";

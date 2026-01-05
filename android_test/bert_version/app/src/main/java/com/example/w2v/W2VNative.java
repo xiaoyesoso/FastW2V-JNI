@@ -18,6 +18,14 @@ public class W2VNative {
     }
 
     public static native long initEngine(String modelPath);
+
+    /**
+     * 初始化 BERT 引擎
+     * @param modelPath .onnx 模型路径
+     * @param vocabPath vocab.txt 词表路径
+     * @return 引擎指针
+     */
+    public static native long initBertEngine(String modelPath, String vocabPath);
     
     public static native boolean loadQAFromFile(long enginePtr, String filePath);
     

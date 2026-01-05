@@ -1,91 +1,160 @@
 # FastW2V-JNI
 
-高性能 C++ Word2Vec 语义搜索与问答引擎，专为移动端 (Android) 和服务端 (Linux) 设计。基于腾讯 AI Lab 预训练词向量，实现毫秒级的语义匹配。
+High-performance C++ semantic search and Q&A engine, supporting dual engines: **Word2Vec** and **BERT (ONNX)**. Specifically designed for mobile (Android) and embedded devices, achieving millisecond-level semantic matching.
 
-## 🚀 项目特点
+## 🚀 Features
 
-- ✅ **极致性能**：采用原生 C++17 实现，核心搜索耗时 <1ms。
-- ✅ **跨平台 JNI**：提供完善的 Java Native Interface，轻松集成至 Android 或 Java 项目。
-- ✅ **端侧部署**：支持完全离线运行，内存占用优化至 300MB 左右。
-- ✅ **内存监控**：支持 `getMemoryUsage(enginePtr)` 获取当前引擎占用的内存 (单位: Bytes)。
-- ✅ **灵活加载**：支持从 CSV 文件或内存数组加载问答知识库。
-- ✅ **中文优化**：针对中文语境优化，支持多种相似度计算逻辑。
+- ✅ **Dual Engine Support**: Supports traditional Word2Vec word embeddings and modern BERT (CoROM) deep learning models.
+- ✅ **Extreme Performance**: Implemented in native C++17, Word2Vec search takes <1ms, BERT inference is highly efficient.
+- ✅ **Cross-platform JNI**: Provides a comprehensive Java Native Interface for easy integration into Android or Java projects.
+- ✅ **Fully Offline**: Supports on-device deployment without internet access, with controllable memory usage.
+- ✅ **Industry-grade Alignment**: BERT engine perfectly aligns with ModelScope CoROM pooling strategy (CLS Pooling).
+- ✅ **Raw Similarity**: Returns raw cosine similarity (-1 to 1), accurately reflecting model confidence.
 
-## 📂 项目结构
+## 📂 Project Structure
 
 ```text
 .
-├── src/                    # 核心 C++ 源代码
-│   ├── TextEmbedder.cpp    # 文本向量化实现
-│   ├── SimilaritySearch.cpp # 向量相似度搜索实现
-│   └── main.cpp            # 命令行测试程序
-├── include/                # C++ 头文件目录
-├── jni/                    # JNI 接口层
-│   ├── W2VNative.java      # Java 层接口定义
-│   └── com_example_w2v_W2VNative.cpp # JNI 原生实现
-├── android_test/           # Android 平台示例与测试工程
-├── linux_java_test/        # Linux 平台 Java 集成测试工程
-├── data/                   # 示例问答数据 (CSV格式)
-├── models/                 # 模型存放目录 (需手动下载模型放入)
-├── build_android.sh        # Android NDK 交叉编译脚本
-├── build_local_jni.sh      # 本地 (Linux/macOS) JNI 库编译脚本
-├── CMakeLists.txt          # CMake 构建配置文件
-└── README.md               # 项目主文档
+├── src/                # Core C++ source code (W2V, BERT, Tokenizer, Search)
+├── include/            # C++ header files
+├── jni/                # JNI interface layer (Java definition & C++ implementation)
+├── android_test/       # Android platform examples
+│   ├── w2v_version/    # Word2Vec integration example
+│   └── bert_version/   # BERT (ONNX Runtime) integration example
+├── linux_java_test/    # Linux/Desktop Java test project
+├── models/             # Model storage directory
+├── data/               # Sample QA data (CSV format)
+├── build_android.sh    # Global Android NDK build script
+└── CMakeLists.txt      # CMake build configuration
 ```
 
-## 📥 模型下载
+## 🛠️ Quick Start
 
-本项目依赖腾讯 AI Lab 预训练模型，请下载后放置于 `models/` 目录：
+### 1. Model Preparation
 
-- **Hugging Face**: [alextomcat/light_Tencent_AILab_ChineseEmbedding](https://huggingface.co/alextomcat/light_Tencent_AILab_ChineseEmbedding)
-- **百度网盘**: [下载地址](https://pan.baidu.com/s/1La4U4XNFe8s5BJqxPQpeiQ) (提取码请查阅相关说明)
+This project supports two engines. Follow these steps for model acquisition and conversion:
 
-## 🛠️ 核心接口说明
+#### **Exporting BERT (CoROM-Tiny) to ONNX**
+1. **Download Model**:
+   - Source: [ModelScope - CoROM Sentence Embedding (Chinese-Tiny)](https://www.modelscope.cn/models/iic/nlp_corom_sentence-embedding_chinese-tiny)
+   - The script below will handle the download automatically.
+2. **Environment Setup**:
+   ```bash
+   pip install torch transformers modelscope onnx
+   ```
+2. **Run Export Script**:
+   Use the provided script to download the model from ModelScope and export it to ONNX format:
+   ```bash
+   python scripts/convert_model.py
+   ```
+   The script will automatically:
+   - Download `iic/nlp_corom_sentence-embedding_chinese-tiny` from ModelScope.
+   - Extract `[CLS]` vector as sentence representation.
+   - Export `model.onnx` and extract `vocab.txt` to the `export/` directory.
 
-### 1. 引擎初始化与知识库加载
+#### **Acquiring and Compressing Word2Vec (Tencent AILab)**
+1. **Download Raw Model**:
+   - Source: [Hugging Face - Tencent AI Lab Chinese Embedding (Light)](https://huggingface.co/alextomcat/light_Tencent_AILab_ChineseEmbedding)
+   - Download the pre-trained Chinese word embeddings (recommend `light` version).
+2. **Convert to Binary Format**:
+   The `.bin` format used in this project is: first line `vocab_size dim`, followed by each line as `word` + `binary float vector`.
+   You can use a simple Python script for conversion:
+   ```python
+   # Example: Converting txt format to binary .bin
+   import struct
+   with open('input.txt', 'r') as f, open('output.bin', 'wb') as f_out:
+       header = f.readline()
+       f_out.write(header.encode('utf-8')) # Write header info (txt)
+       for line in f:
+           parts = line.strip().split()
+           word = parts[0]
+           vec = [float(x) for x in parts[1:]]
+           f_out.write(f"{word} ".encode('utf-8'))
+           f_out.write(struct.pack(f'{len(vec)}f', *vec))
+   ```
+
+### 2. Initialize Engine
 ```java
-// 初始化引擎，返回原生对象指针
+// Word2Vec Mode
 long enginePtr = W2VNative.initEngine(modelPath);
 
-// 方式 A：从 CSV 加载 (推荐)
-W2VNative.loadQAFromFile(enginePtr, "data/qa_list.csv");
-
-// 方式 B：从内存加载 (动态构建)
-String[] questions = {"如何注册账号?", "忘记密码怎么办?"};
-String[] answers = {"点击右上角注册按钮。", "请点击找回密码并输入邮箱。"};
-W2VNative.loadQAFromMemory(enginePtr, questions, answers);
+// BERT Mode
+long enginePtr = W2VNative.initBertEngine(onnxPath, vocabPath);
 ```
 
-### 2. 语义搜索
+### 3. Load Data and Search
 ```java
-// 执行搜索，返回最相似的结果对象
-W2VNative.SearchResult result = W2VNative.search(enginePtr, "我想改密码");
+// Load QA knowledge base (CSV format)
+W2VNative.loadQAFromFile(enginePtr, "qa_list.csv");
+
+// Execute semantic search
+W2VNative.SearchResult result = W2VNative.search(enginePtr, "How to restart the system");
 
 if (result != null) {
-    System.out.println("匹配问题: " + result.question);
-    System.out.println("对应答案: " + result.answer);
-    System.out.println("置信度: " + result.score);
+    System.out.println("Matched Question: " + result.question);
+    System.out.println("Confidence (Cos): " + result.score);
 }
 ```
 
-## 📊 性能指标
+## 🐧 Linux / RK3588 Deployment
 
-| 指标项 | 表现 | 备注 |
-| :--- | :--- | :--- |
-| **模型规格** | 14.3万词 / 200维度 | 压缩版腾讯 AI Lab 模型 |
-| **搜索耗时** | < 1ms | ARM64 设备测试结果 |
-| **内存占用** | ~300MB | 包含模型权重与索引 |
-| **支持容量** | 10,000+ QA 对 | 线性扩展，保持高性能 |
+### 1. Build Linux Version
+```bash
+# Use build.sh script for local compilation
+chmod +x build.sh
+./build.sh linux
+```
 
-## ⚙️ 环境要求
+### 2. Deployment Steps
+1. Copy the generated `libw2v_jni.so`, model files, and `qa_list.csv` to the target device.
+2. Ensure the Java runtime can load the `.so` library (set `java.library.path`).
+3. Verify the library: `file libw2v_jni.so` should show `ELF 64-bit LSB shared object, ARM aarch64`.
 
-- **硬件**：ARM64 (Android/RK3588等) 或 x86_64 设备。
-- **软件**：Android 7.0+ (API 24) 或 Linux (Ubuntu/CentOS)。
-- **编译**：C++17 兼容编译器。
-- **Android NDK**：
-    - 需要手动下载并安装 [Android NDK (推荐 r21+)](https://developer.android.com/ndk/downloads)。
-    - 编译时需配置环境变量 `ANDROID_NDK` 指向你的安装目录。
+## 📱 Android Integration Guide
 
-## 📄 许可证
+### 1. Copy Resources and Libraries
+- **JNI Library**: Copy `libw2v_jni.so` to `app/src/main/jniLibs/arm64-v8a/`.
+- **Java Interface**: Copy `W2VNative.java` to the corresponding package path.
+- **Model**: Place the model and vocab files into the `assets` directory.
 
-本项目遵循 MIT 协议开源。仅供学习与技术研究使用。
+### 2. Project Configuration (build.gradle)
+```gradle
+android {
+    defaultConfig {
+        ndk { abiFilters 'arm64-v8a' }
+    }
+}
+dependencies {
+    // Required only for BERT mode
+    implementation 'com.microsoft.onnxruntime:onnxruntime-android:latest.release'
+}
+```
+
+### 3. Code Example
+Since Android cannot directly access assets via file path, you must copy the model to a private directory first:
+```java
+String modelPath = context.getFilesDir().getPath() + "/model.onnx";
+// ... Copy assets to modelPath ...
+long enginePtr = W2VNative.initBertEngine(modelPath, vocabPath);
+```
+
+## 💡 Optimization and Troubleshooting
+
+- **Memory Management**: Models remain in memory after loading (W2V ~120MB, BERT ~30MB). It's recommended to call `releaseEngine` explicitly in `onDestroy`.
+- **Thread Safety**: JNI calls should not be executed on the UI thread; use a background thread instead.
+- **Common Issues**:
+    - `UnsatisfiedLinkError`: Check if `abiFilters` includes `arm64-v8a` and the library path is correct.
+    - Model Loading Failure: Ensure the file path is an absolute path and has read permissions.
+
+## 📊 Performance Metrics (Android ARM64)
+
+| Engine | Model Size | Memory Usage | Search Latency |
+| :--- | :--- | :--- | :--- |
+| **Word2Vec** | ~50MB | ~120MB | < 0.2 ms |
+| **BERT (Tiny)** | ~33MB | ~30MB | ~100 ms |
+
+> **Note**: BERT engine depends on `onnxruntime-android`, while the Word2Vec engine has no external dependencies.
+
+## 📄 License
+
+This project is licensed under the MIT License. For educational and technical research purposes only.

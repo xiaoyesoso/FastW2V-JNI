@@ -43,7 +43,17 @@ build_for_abi() {
     
     local BUILD_DIR="build_android_$ABI"
     local OUTPUT_DIR="app/src/main/jniLibs/$ABI"
-    local PROJECT_ROOT=".."
+    local PROJECT_ROOT="../../.."
+    
+    # 自动探测真实的 PROJECT_ROOT (向上查找包含 include 目录的父目录)
+    if [ ! -d "$PROJECT_ROOT/include" ]; then
+        PROJECT_ROOT="../.."
+    fi
+    if [ ! -d "$PROJECT_ROOT/include" ]; then
+        PROJECT_ROOT=".."
+    fi
+    
+    echo "使用 PROJECT_ROOT: $PROJECT_ROOT"
     
     mkdir -p $BUILD_DIR
     mkdir -p $OUTPUT_DIR
@@ -53,10 +63,14 @@ build_for_abi() {
     
     # 编译参数
     # -static-libstdc++: 强制静态链接 C++ 标准库
-    local CXXFLAGS="-std=c++17 -fPIC -O3 -DANDROID -DJNI_CLASS_NAME=\"$JNI_CLASS_PATH\" $INCLUDES $ARCH_FLAGS"
+    # -DDISABLE_BERT: 禁用 BERT 功能，仅保留 Word2Vec
+    local CXXFLAGS="-std=c++17 -fPIC -O3 -DANDROID -DJNI_CLASS_NAME=\"$JNI_CLASS_PATH\" -DDISABLE_BERT $INCLUDES $ARCH_FLAGS"
     local LDFLAGS="-shared -llog -landroid -lm -static-libstdc++"
     
     # 编译核心代码
+    $CXX_COMPILER $CXXFLAGS -c $PROJECT_ROOT/src/W2VEmbedder.cpp -o $BUILD_DIR/W2VEmbedder.o
+    $CXX_COMPILER $CXXFLAGS -c $PROJECT_ROOT/src/BertTokenizer.cpp -o $BUILD_DIR/BertTokenizer.o
+    $CXX_COMPILER $CXXFLAGS -c $PROJECT_ROOT/src/BertEmbedder.cpp -o $BUILD_DIR/BertEmbedder.o
     $CXX_COMPILER $CXXFLAGS -c $PROJECT_ROOT/src/TextEmbedder.cpp -o $BUILD_DIR/TextEmbedder.o
     $CXX_COMPILER $CXXFLAGS -c $PROJECT_ROOT/src/SimilaritySearch.cpp -o $BUILD_DIR/SimilaritySearch.o
     $CXX_COMPILER $CXXFLAGS -c $PROJECT_ROOT/src/main.cpp -o $BUILD_DIR/main.o
@@ -64,6 +78,9 @@ build_for_abi() {
     
     # 链接生成 .so 文件
     $CXX_COMPILER $LDFLAGS \
+        $BUILD_DIR/W2VEmbedder.o \
+        $BUILD_DIR/BertTokenizer.o \
+        $BUILD_DIR/BertEmbedder.o \
         $BUILD_DIR/TextEmbedder.o \
         $BUILD_DIR/SimilaritySearch.o \
         $BUILD_DIR/main.o \

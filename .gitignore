@@ -31,8 +31,13 @@ captures/
 .DS_Store
 
 # Models (Large files should usually be ignored or handled via Git LFS)
-models/*.bin
-android_test/app/src/main/assets/*.bin
+models/
+export/
+*.bin
+*.onnx
+**/assets/*.bin
+**/assets/*.onnx
+**/assets/vocab.txt
 
 # Temporary files
 *.log

@@ -1,11 +1,13 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <memory>
+#include <algorithm>
 #include "../include/main.h"
 #include "../include/TextEmbedder.h"
 #include "../include/SimilaritySearch.h"
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <algorithm>
-#include <memory>
 
 class W2VEngine::Impl {
 private:
@@ -112,209 +114,84 @@ private:
     }
 
 public:
-    Impl() : initialized_(false), memory_usage_(0) {
-        embedder_.reset(new TextEmbedder());
-        searcher_.reset(new SimilaritySearch());
-    }
+    Impl() : embedder_(std::unique_ptr<TextEmbedder>(new TextEmbedder())),
+             searcher_(std::unique_ptr<SimilaritySearch>(new SimilaritySearch())),
+             initialized_(false), memory_usage_(0) {}
     
     ~Impl() {
         release();
     }
     
     bool initialize(const std::string& model_path) {
-        if (initialized_) {
-            release();
-        }
-        
+        if (initialized_) release();
         if (!embedder_->initialize(model_path)) {
-            std::cerr << "初始化向量化器失败" << std::endl;
             return false;
         }
-        
+        searcher_ = std::unique_ptr<SimilaritySearch>(new SimilaritySearch());
+        searcher_->initialize(embedder_->get_embedding_dim());
         initialized_ = true;
+        update_memory_usage();
+        return true;
+    }
+
+    bool initialize_bert(const std::string& model_path, const std::string& vocab_path) {
+        if (initialized_) release();
+        if (!embedder_->initialize_bert(model_path, vocab_path)) {
+            return false;
+        }
+        searcher_ = std::unique_ptr<SimilaritySearch>(new SimilaritySearch());
+        searcher_->initialize(embedder_->get_embedding_dim());
+        initialized_ = true;
+        update_memory_usage();
         return true;
     }
     
     bool load_qa_from_file(const std::string& file_path) {
-        if (!initialized_) {
-            std::cerr << "引擎未初始化" << std::endl;
-            return false;
-        }
+        if (!initialized_) return false;
         
         std::vector<std::pair<std::string, std::string> > new_qa_pairs;
-        if (!parse_qa_file(file_path, new_qa_pairs)) {
-            std::cerr << "解析QA文件失败" << std::endl;
-            return false;
-        }
+        if (!parse_qa_file(file_path, new_qa_pairs)) return false;
         
-        // 提取问题文本用于训练向量化器
         std::vector<std::string> questions;
-        questions.reserve(new_qa_pairs.size());
+        std::vector<std::string> answers;
         for (const auto& qa : new_qa_pairs) {
             questions.push_back(qa.first);
+            answers.push_back(qa.second);
         }
         
-        // 训练向量化器（基于TF-IDF）
-        // 注意：这里简化了，实际应该使用预训练模型
-        
-        // 生成向量
         std::vector<std::vector<float> > embeddings = embedder_->embed_batch(questions);
-        if (embeddings.size() != new_qa_pairs.size()) {
-            std::cerr << "向量化失败" << std::endl;
-            return false;
-        }
+        searcher_->add_qa_batch(questions, answers, embeddings);
         
-        // 初始化搜索器
-        int embedding_dim = embedder_->get_embedding_dim();
-        if (!searcher_->initialize(embedding_dim)) {
-            std::cerr << "初始化搜索器失败" << std::endl;
-            return false;
-        }
-        
-        // 添加QA对到搜索器
-        std::vector<std::string> question_texts;
-        std::vector<std::string> answer_texts;
-        question_texts.reserve(new_qa_pairs.size());
-        answer_texts.reserve(new_qa_pairs.size());
-        
-        for (const auto& qa : new_qa_pairs) {
-            question_texts.push_back(qa.first);
-            answer_texts.push_back(qa.second);
-        }
-        
-        if (!searcher_->add_qa_batch(question_texts, answer_texts, embeddings)) {
-            std::cerr << "添加QA对失败" << std::endl;
-            return false;
-        }
-        
-        // 更新内存中的QA对
-        qa_pairs_ = std::move(new_qa_pairs);
-        
-        // 更新内存使用量
+        qa_pairs_.insert(qa_pairs_.end(), new_qa_pairs.begin(), new_qa_pairs.end());
         update_memory_usage();
+        return true;
+    }
+
+    bool load_qa_from_memory(const std::vector<std::string>& questions,
+                           const std::vector<std::string>& answers) {
+        if (!initialized_) return false;
+        if (questions.size() != answers.size()) return false;
         
-        std::cout << "成功加载 " << qa_pairs_.size() << " 个QA对" << std::endl;
-        std::cout << "内存使用量: " << memory_usage_ / 1024 / 1024 << " MB" << std::endl;
+        std::vector<std::vector<float> > embeddings = embedder_->embed_batch(questions);
+        searcher_->add_qa_batch(questions, answers, embeddings);
         
+        for (size_t i = 0; i < questions.size(); i++) {
+            qa_pairs_.push_back(std::make_pair(questions[i], answers[i]));
+        }
+        update_memory_usage();
         return true;
     }
     
-    bool load_qa_from_memory(const std::vector<std::pair<std::string, std::string> >& qa_pairs) {
-        if (!initialized_) {
-            std::cerr << "引擎未初始化" << std::endl;
-            return false;
-        }
-        
-        if (qa_pairs.empty()) {
-            std::cerr << "QA对列表为空" << std::endl;
-            return false;
-        }
-        
-        // 提取问题文本
-        std::vector<std::string> questions;
-        questions.reserve(qa_pairs.size());
-        for (const auto& qa : qa_pairs) {
-            questions.push_back(qa.first);
-        }
-        
-        // 生成向量
-        std::vector<std::vector<float> > embeddings = embedder_->embed_batch(questions);
-        if (embeddings.size() != qa_pairs.size()) {
-            std::cerr << "向量化失败" << std::endl;
-            return false;
-        }
-        
-        // 初始化搜索器
-        int embedding_dim = embedder_->get_embedding_dim();
-        if (!searcher_->initialize(embedding_dim)) {
-            std::cerr << "初始化搜索器失败" << std::endl;
-            return false;
-        }
-        
-        // 添加QA对到搜索器
-        std::vector<std::string> question_texts;
-        std::vector<std::string> answer_texts;
-        question_texts.reserve(qa_pairs.size());
-        answer_texts.reserve(qa_pairs.size());
-        
-        for (const auto& qa : qa_pairs) {
-            question_texts.push_back(qa.first);
-            answer_texts.push_back(qa.second);
-        }
-        
-        if (!searcher_->add_qa_batch(question_texts, answer_texts, embeddings)) {
-            std::cerr << "添加QA对失败" << std::endl;
-            return false;
-        }
-        
-        // 更新内存中的QA对
-        qa_pairs_ = qa_pairs;
-        
-        // 更新内存使用量
-        update_memory_usage();
-        
-        std::cout << "成功加载 " << qa_pairs_.size() << " 个QA对" << std::endl;
-        std::cout << "内存使用量: " << memory_usage_ / 1024 / 1024 << " MB" << std::endl;
-        
-        return true;
-    }
-    
-    std::pair<std::string, std::string> search(const std::string& query, float* similarity_score) {
-        if (!initialized_ || qa_pairs_.empty()) {
-            if (similarity_score) *similarity_score = 0.0f;
-            return std::make_pair("", "");
-        }
-        
-        // 向量化查询
+    SearchResult search(const std::string& query) {
+        if (!initialized_) return SearchResult("", "", 0.0f);
         std::vector<float> query_embedding = embedder_->embed(query);
-        if (query_embedding.empty()) {
-            if (similarity_score) *similarity_score = 0.0f;
-            return std::make_pair("", "");
-        }
-        
-        // 搜索
-        SearchResult result = searcher_->search(query_embedding);
-        
-        if (similarity_score) {
-            *similarity_score = result.similarity;
-        }
-        
-        return std::make_pair(result.question, result.answer);
+        return searcher_->search(query_embedding);
     }
     
-    std::vector<std::pair<std::string, std::string> > search_batch(const std::vector<std::string>& queries,
-                                                                 std::vector<float>* similarity_scores = nullptr) {
-        std::vector<std::pair<std::string, std::string> > results;
-        
-        if (!initialized_ || qa_pairs_.empty()) {
-            if (similarity_scores) similarity_scores->clear();
-            return results;
-        }
-        
-        // 向量化所有查询
+    std::vector<SearchResult> search_batch(const std::vector<std::string>& queries) {
+        if (!initialized_) return std::vector<SearchResult>();
         std::vector<std::vector<float> > query_embeddings = embedder_->embed_batch(queries);
-        if (query_embeddings.empty()) {
-            if (similarity_scores) similarity_scores->clear();
-            return results;
-        }
-        
-        // 批量搜索
-        std::vector<SearchResult> search_results = searcher_->search_batch(query_embeddings);
-        
-        // 转换结果格式
-        results.reserve(search_results.size());
-        if (similarity_scores) {
-            similarity_scores->reserve(search_results.size());
-        }
-        
-        for (const auto& result : search_results) {
-            results.emplace_back(result.question, result.answer);
-            if (similarity_scores) {
-                similarity_scores->push_back(result.similarity);
-            }
-        }
-        
-        return results;
+        return searcher_->search_batch(query_embeddings);
     }
     
     size_t get_qa_count() const {
@@ -330,14 +207,8 @@ public:
     }
     
     void release() {
-        if (embedder_) {
-            embedder_->release();
-        }
-        
-        if (searcher_) {
-            searcher_->clear();
-        }
-        
+        embedder_->release();
+        if (searcher_) searcher_->clear();
         qa_pairs_.clear();
         initialized_ = false;
         memory_usage_ = 0;
@@ -353,21 +224,35 @@ bool W2VEngine::initialize(const std::string& model_path) {
     return impl_->initialize(model_path);
 }
 
+bool W2VEngine::initialize_bert(const std::string& model_path, const std::string& vocab_path) {
+    return impl_->initialize_bert(model_path, vocab_path);
+}
+
 bool W2VEngine::load_qa_from_file(const std::string& file_path) {
     return impl_->load_qa_from_file(file_path);
 }
 
-bool W2VEngine::load_qa_from_memory(const std::vector<std::pair<std::string, std::string> >& qa_pairs) {
-    return impl_->load_qa_from_memory(qa_pairs);
+bool W2VEngine::load_qa_from_memory(const std::vector<std::string>& questions,
+                                   const std::vector<std::string>& answers) {
+    return impl_->load_qa_from_memory(questions, answers);
 }
 
 std::pair<std::string, std::string> W2VEngine::search(const std::string& query, float* similarity_score) {
-    return impl_->search(query, similarity_score);
+    SearchResult res = impl_->search(query);
+    if (similarity_score) *similarity_score = res.similarity;
+    return std::make_pair(res.question, res.answer);
 }
 
 std::vector<std::pair<std::string, std::string> > W2VEngine::search_batch(const std::vector<std::string>& queries,
                                                                          std::vector<float>* similarity_scores) {
-    return impl_->search_batch(queries, similarity_scores);
+    std::vector<SearchResult> results = impl_->search_batch(queries);
+    std::vector<std::pair<std::string, std::string> > final_results;
+    if (similarity_scores) similarity_scores->clear();
+    for (const auto& res : results) {
+        final_results.push_back(std::make_pair(res.question, res.answer));
+        if (similarity_scores) similarity_scores->push_back(res.similarity);
+    }
+    return final_results;
 }
 
 size_t W2VEngine::get_qa_count() const {

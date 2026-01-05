@@ -30,7 +30,10 @@ public class AndroidJavaTest {
             // 2. 测试单次搜索
             String query = "你好";
             Log.i(TAG, "正在搜索: \"" + query + "\"");
+            long startTime = System.nanoTime();
             W2VNative.SearchResult result = W2VNative.search(enginePtr, query);
+            long endTime = System.nanoTime();
+            Log.i(TAG, "单次搜索耗时: " + (endTime - startTime) / 1000000.0 + " ms");
             
             if (result != null) {
                 Log.i(TAG, "匹配问题: " + result.question);
@@ -41,14 +44,27 @@ public class AndroidJavaTest {
             }
             
             // 3. 测试批量搜索
-            String[] queries = {"系统状态", "你是谁", "RK3588"};
-            Log.i(TAG, "\n正在进行批量搜索...");
+            String[] queries = {
+                "系统状态",          // 高相关
+                "RK3588处理器",     // 高相关
+                "如何重启系统服务",   // 语义相关
+                "学习写代码",        // 语义相关
+                "今天天气不错",      // 不相关
+                "我想吃苹果",        // 不相关
+                "珠穆朗玛峰有多高",    // 不相关
+                "AbC dEf GhI 123"   // 极低相关/随机
+            };
+            Log.i(TAG, "\n正在进行批量搜索 (共 " + queries.length + " 个查询)...");
+            startTime = System.nanoTime();
             W2VNative.SearchResult[] batchResults = W2VNative.searchBatch(enginePtr, queries);
+            endTime = System.nanoTime();
+            double totalMs = (endTime - startTime) / 1000000.0;
+            Log.i(TAG, String.format("批量搜索总耗时: %.3f ms, 平均每条: %.3f ms", totalMs, totalMs / queries.length));
             
             if (batchResults != null) {
                 for (int i = 0; i < batchResults.length; i++) {
                     if (batchResults[i] != null) {
-                        Log.i(TAG, "查询 [" + queries[i] + "] -> 结果: " + batchResults[i].answer + " (得分: " + batchResults[i].score + ")");
+                        Log.i(TAG, "查询 [" + queries[i] + "] -> 匹配问题: [" + batchResults[i].question + "] -> 结果: " + batchResults[i].answer + " (得分: " + batchResults[i].score + ")");
                     } else {
                         Log.w(TAG, "查询 [" + queries[i] + "] -> 无结果");
                     }

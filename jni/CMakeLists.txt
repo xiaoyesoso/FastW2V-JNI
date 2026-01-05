@@ -14,6 +14,9 @@ include_directories(
 
 # 源文件
 set(SOURCE_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/W2VEmbedder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/BertTokenizer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/BertEmbedder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/TextEmbedder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/SimilaritySearch.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/main.cpp

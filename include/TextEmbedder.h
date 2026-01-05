@@ -7,10 +7,19 @@
 
 class TextEmbedder {
 public:
+    enum ModelType {
+        MODEL_W2V,
+        MODEL_BERT,
+        MODEL_AUTO
+    };
+
     TextEmbedder();
     ~TextEmbedder();
     
-    bool initialize(const std::string& model_path);
+    bool initialize(const std::string& model_path, ModelType type = MODEL_AUTO);
+    
+    // 对于 BERT，可能需要额外的配置，如词表路径
+    bool initialize_bert(const std::string& model_path, const std::string& vocab_path);
     
     std::vector<float> embed(const std::string& text);
     

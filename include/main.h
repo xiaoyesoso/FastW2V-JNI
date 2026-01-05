@@ -11,10 +11,12 @@ public:
     ~W2VEngine();
     
     bool initialize(const std::string& model_path);
+    bool initialize_bert(const std::string& model_path, const std::string& vocab_path);
     
     bool load_qa_from_file(const std::string& file_path);
     
-    bool load_qa_from_memory(const std::vector<std::pair<std::string, std::string> >& qa_pairs);
+    bool load_qa_from_memory(const std::vector<std::string>& questions,
+                            const std::vector<std::string>& answers);
     
     std::pair<std::string, std::string> search(const std::string& query, float* similarity_score = nullptr);
     

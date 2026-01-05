@@ -63,13 +63,17 @@ private:
             }
         }
         
-        if (best_similarity < 0) {
+        if (best_similarity < -1.0f) {
             return SearchResult("", "", 0.0f);
         }
         
+        // 直接使用原始余弦相似度 [-1, 1]
+        // 首先进行裁剪以防止浮点精度问题
+        float final_score = std::max(-1.0f, std::min(1.0f, best_similarity));
+        
         return SearchResult(qa_entries_[best_index].question,
                           qa_entries_[best_index].answer,
-                          best_similarity);
+                          final_score);
     }
 
 public:
